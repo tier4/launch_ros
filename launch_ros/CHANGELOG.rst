@@ -2,6 +2,12 @@
 Changelog for package launch_ros
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.19.9 (2025-03-25)
+-------------------
+* Change docstring markdown code blocks to RST (`#450 <https://github.com/ros2/launch_ros/issues/450>`_) (`#452 <https://github.com/ros2/launch_ros/issues/452>`_)
+* mock launch components causing rosdoc2 to fail Python API (`#425 <https://github.com/ros2/launch_ros/issues/425>`_) (`#440 <https://github.com/ros2/launch_ros/issues/440>`_)
+* Contributors: mergify[bot]
+
 0.19.8 (2024-11-25)
 -------------------
 * Fix url in setup.py (backport `#413 <https://github.com/ros2/launch_ros/issues/413>`_) (`#415 <https://github.com/ros2/launch_ros/issues/415>`_)
