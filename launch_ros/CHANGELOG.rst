@@ -2,8 +2,8 @@
 Changelog for package launch_ros
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.26.7 (2025-04-02)
+-------------------
 * Fixing lifecycle node autostart issue `#445 <https://github.com/ros2/launch_ros/issues/445>`_ (`#449 <https://github.com/ros2/launch_ros/issues/449>`_) (`#453 <https://github.com/ros2/launch_ros/issues/453>`_)
   (cherry picked from commit 98952b58d570cde78d8cfec8c8d697f331b8c982)
   Co-authored-by: Steve Macenski <stevenmacenski@gmail.com>

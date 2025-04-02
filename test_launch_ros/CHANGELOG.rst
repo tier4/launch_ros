@@ -2,8 +2,8 @@
 Changelog for package test_launch_ros
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.26.7 (2025-04-02)
+-------------------
 * Autostarting lifecycle nodes and example launch file demo (`#430 <https://github.com/ros2/launch_ros/issues/430>`_) (`#438 <https://github.com/ros2/launch_ros/issues/438>`_)
   (cherry picked from commit 3569f0d76c68884ca8796c0134bad29e8732d868)
   Co-authored-by: Steve Macenski <stevenmacenski@gmail.com>

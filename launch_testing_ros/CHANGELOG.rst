@@ -2,8 +2,8 @@
 Changelog for package launch_testing_ros
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.26.7 (2025-04-02)
+-------------------
 * Merge pull request `#447 <https://github.com/ros2/launch_ros/issues/447>`_ from ros2/mergify/bp/jazzy/pr-446
   Fix function params indentation (backport `#446 <https://github.com/ros2/launch_ros/issues/446>`_)
 * Fix function params indentation (`#446 <https://github.com/ros2/launch_ros/issues/446>`_)
