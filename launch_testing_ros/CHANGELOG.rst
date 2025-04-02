@@ -2,6 +2,15 @@
 Changelog for package launch_testing_ros
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#447 <https://github.com/ros2/launch_ros/issues/447>`_ from ros2/mergify/bp/jazzy/pr-446
+  Fix function params indentation (backport `#446 <https://github.com/ros2/launch_ros/issues/446>`_)
+* Fix function params indentation (`#446 <https://github.com/ros2/launch_ros/issues/446>`_)
+  And add return type.
+  (cherry picked from commit aeff3ca28cfe51c522b04592ec3c7e7077bf2531)
+* Contributors: Alejandro Hernández Cordero, Christophe Bedard
+
 0.26.6 (2024-12-18)
 -------------------
 

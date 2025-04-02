@@ -2,6 +2,22 @@
 Changelog for package launch_ros
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Fixing lifecycle node autostart issue `#445 <https://github.com/ros2/launch_ros/issues/445>`_ (`#449 <https://github.com/ros2/launch_ros/issues/449>`_) (`#453 <https://github.com/ros2/launch_ros/issues/453>`_)
+  (cherry picked from commit 98952b58d570cde78d8cfec8c8d697f331b8c982)
+  Co-authored-by: Steve Macenski <stevenmacenski@gmail.com>
+* Autostarting lifecycle nodes and example launch file demo (`#430 <https://github.com/ros2/launch_ros/issues/430>`_) (`#438 <https://github.com/ros2/launch_ros/issues/438>`_)
+  (cherry picked from commit 3569f0d76c68884ca8796c0134bad29e8732d868)
+  Co-authored-by: Steve Macenski <stevenmacenski@gmail.com>
+* Change docstring markdown code blocks to RST (`#450 <https://github.com/ros2/launch_ros/issues/450>`_) (`#451 <https://github.com/ros2/launch_ros/issues/451>`_)
+  (cherry picked from commit 9abb3be6c9b482bb9945d9204a0427c7b3c0f450)
+  Co-authored-by: Christophe Bedard <bedard.christophe@gmail.com>
+* mock launch components causing rosdoc2 to fail Python API (`#425 <https://github.com/ros2/launch_ros/issues/425>`_) (`#439 <https://github.com/ros2/launch_ros/issues/439>`_)
+  (cherry picked from commit 2e737c8cb0ad7afc436938c30b5e14b4282ff2f7)
+  Co-authored-by: R Kent James <kent@caspia.com>
+* Contributors: mergify[bot]
+
 0.26.6 (2024-12-18)
 -------------------
 * Fix url in setup.py (`#413 <https://github.com/ros2/launch_ros/issues/413>`_) (`#414 <https://github.com/ros2/launch_ros/issues/414>`_)
