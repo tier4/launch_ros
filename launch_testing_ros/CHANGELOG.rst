@@ -2,6 +2,9 @@
 Changelog for package launch_testing_ros
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.26.8 (2025-06-23)
+-------------------
+
 0.26.7 (2025-04-02)
 -------------------
 * Merge pull request `#447 <https://github.com/ros2/launch_ros/issues/447>`_ from ros2/mergify/bp/jazzy/pr-446

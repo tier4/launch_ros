@@ -2,6 +2,12 @@
 Changelog for package launch_ros
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.26.8 (2025-06-23)
+-------------------
+* improve type readability in errors (`#469 <https://github.com/ros2/launch_ros/issues/469>`_) (`#472 <https://github.com/ros2/launch_ros/issues/472>`_)
+* Fix: LoadComposableNodes fails to parse wildcard param files correctly (`#460 <https://github.com/ros2/launch_ros/issues/460>`_) (`#465 <https://github.com/ros2/launch_ros/issues/465>`_) (`#467 <https://github.com/ros2/launch_ros/issues/467>`_)
+* Contributors: mergify[bot]
+
 0.26.7 (2025-04-02)
 -------------------
 * Fixing lifecycle node autostart issue `#445 <https://github.com/ros2/launch_ros/issues/445>`_ (`#449 <https://github.com/ros2/launch_ros/issues/449>`_) (`#453 <https://github.com/ros2/launch_ros/issues/453>`_)
