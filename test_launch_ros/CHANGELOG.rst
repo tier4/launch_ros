@@ -2,6 +2,11 @@
 Changelog for package test_launch_ros
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.19.10 (2025-06-23)
+--------------------
+* Fix: LoadComposableNodes fails to parse wildcard param files correctly (`#460 <https://github.com/ros2/launch_ros/issues/460>`_) (`#465 <https://github.com/ros2/launch_ros/issues/465>`_) (`#468 <https://github.com/ros2/launch_ros/issues/468>`_)
+* Contributors: mergify[bot]
+
 0.19.9 (2025-03-25)
 -------------------
 
