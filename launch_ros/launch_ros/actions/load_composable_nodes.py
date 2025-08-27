@@ -16,6 +16,7 @@
 
 from pathlib import Path
 import threading
+import time
 
 from typing import List
 from typing import Optional
@@ -143,6 +144,9 @@ class LoadComposableNodes(Action):
 
             response_future = self.__rclpy_load_node_client.call_async(request)
             response_future.add_done_callback(unblock)
+            attempt_started = time.monotonic()
+            # maximum wait time per attempt (seconds)
+            timeout_sec = 30.0
 
             while not event.wait(1.0):
                 if context.is_shutdown:
@@ -152,6 +156,22 @@ class LoadComposableNodes(Action):
                     )
                     response_future.cancel()
                     return
+
+                # Resend if no response for 10s
+                if (time.monotonic() - attempt_started) >= timeout_sec:
+                    self.__logger.warning(
+                        "No response from '{}' for {}s; resending service call.".format(
+                            self.__rclpy_load_node_client.srv_name, timeout_sec
+                        )
+                    )
+                    response_future.cancel()
+
+                    # Reset event and unblock callback
+                    event = threading.Event()
+
+                    response_future = self.__rclpy_load_node_client.call_async(request)
+                    response_future.add_done_callback(unblock)
+                    attempt_started = time.monotonic()
 
             # Get response
             if response_future.exception() is not None:
