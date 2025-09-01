@@ -200,7 +200,7 @@ class LoadComposableNodes(Action):
                     response_future.cancel()
                     return
 
-                # Resend if no response for 10s
+                # Resend if no response for timeout_sec
                 if (time.monotonic() - attempt_started) >= timeout_sec:
                     self.__logger.warning(
                         "No response from '{}' for {}s; resending service call.".format(
