@@ -109,6 +109,49 @@ class LoadComposableNodes(Action):
 
         return cls, kwargs
 
+    def _resend_service_call_if_timeout(
+        self,
+        response_future,
+        event: threading.Event,
+        attempt_started: float,
+        timeout_sec: float,
+        request: composition_interfaces.srv.LoadNode.Request,
+        context: LaunchContext
+    ) -> tuple:
+        """
+        Resend service call if timeout occurred.
+        
+        :param response_future: current response future
+        :param event: threading event for synchronization
+        :param attempt_started: timestamp when attempt started
+        :param timeout_sec: timeout duration in seconds
+        :param request: service request to resend
+        :param context: current launch context
+        :return: tuple of (new_response_future, new_event, new_attempt_started)
+        """
+        if (time.monotonic() - attempt_started) >= timeout_sec:
+            self.__logger.warning(
+                "No response from '{}' for {}s; resending service call.".format(
+                    self.__rclpy_load_node_client.srv_name, timeout_sec
+                )
+            )
+            response_future.cancel()
+
+            # Reset event and unblock callback
+            new_event = threading.Event()
+
+            def unblock(future):
+                nonlocal new_event
+                new_event.set()
+
+            new_response_future = self.__rclpy_load_node_client.call_async(request)
+            new_response_future.add_done_callback(unblock)
+            new_attempt_started = time.monotonic()
+            
+            return new_response_future, new_event, new_attempt_started
+        
+        return response_future, event, attempt_started
+
     def _load_node(
         self,
         request: composition_interfaces.srv.LoadNode.Request,
@@ -201,20 +244,9 @@ class LoadComposableNodes(Action):
                     return
 
                 # Resend if no response for timeout_sec
-                if (time.monotonic() - attempt_started) >= timeout_sec:
-                    self.__logger.warning(
-                        "No response from '{}' for {}s; resending service call.".format(
-                            self.__rclpy_load_node_client.srv_name, timeout_sec
-                        )
-                    )
-                    response_future.cancel()
-
-                    # Reset event and unblock callback
-                    event = threading.Event()
-
-                    response_future = self.__rclpy_load_node_client.call_async(request)
-                    response_future.add_done_callback(unblock)
-                    attempt_started = time.monotonic()
+                response_future, event, attempt_started = self._resend_service_call_if_timeout(
+                    response_future, event, attempt_started, timeout_sec, request, context
+                )
 
             # Get response
             if response_future.exception() is not None:
