@@ -116,7 +116,9 @@ class LoadComposableNodes(Action):
         attempt_started: float,
         timeout_sec: float,
         request: composition_interfaces.srv.LoadNode.Request,
-        context: LaunchContext
+        context: LaunchContext,
+        retry_count: int = 0,
+        max_retries: int = 10
     ) -> tuple:
         """
         Resend service call if timeout occurred.
@@ -127,12 +129,25 @@ class LoadComposableNodes(Action):
         :param timeout_sec: timeout duration in seconds
         :param request: service request to resend
         :param context: current launch context
-        :return: tuple of (new_response_future, new_event, new_attempt_started)
+        :param retry_count: current retry attempt count
+        :param max_retries: maximum number of retry attempts
+        :return: tuple of (new_response_future, new_event, new_attempt_started, new_retry_count)
         """
         if (time.monotonic() - attempt_started) >= timeout_sec:
+            if retry_count >= max_retries:
+                self.__logger.error(
+                    "Maximum retry attempts ({}) exceeded for '{}' service. Giving up.".format(
+                        max_retries, self.__rclpy_load_node_client.srv_name
+                    )
+                )
+                raise RuntimeError(
+                    "Failed to load node after {} retry attempts".format(max_retries)
+                )
+            
             self.__logger.warning(
-                "No response from '{}' for {}s; resending service call.".format(
-                    self.__rclpy_load_node_client.srv_name, timeout_sec
+                "No response from '{}' for {}s; resending service call (attempt {}/{}).".format(
+                    self.__rclpy_load_node_client.srv_name, timeout_sec, 
+                    retry_count + 1, max_retries
                 )
             )
             response_future.cancel()
@@ -147,10 +162,11 @@ class LoadComposableNodes(Action):
             new_response_future = self.__rclpy_load_node_client.call_async(request)
             new_response_future.add_done_callback(unblock)
             new_attempt_started = time.monotonic()
+            new_retry_count = retry_count + 1
             
-            return new_response_future, new_event, new_attempt_started
+            return new_response_future, new_event, new_attempt_started, new_retry_count
         
-        return response_future, event, attempt_started
+        return response_future, event, attempt_started, retry_count
 
     def _load_node(
         self,
@@ -233,6 +249,7 @@ class LoadComposableNodes(Action):
             attempt_started = time.monotonic()
             # maximum wait time per attempt (seconds)
             timeout_sec = 30.0
+            retry_count = 0
 
             while not event.wait(1.0):
                 if context.is_shutdown:
@@ -244,8 +261,8 @@ class LoadComposableNodes(Action):
                     return
 
                 # Resend if no response for timeout_sec
-                response_future, event, attempt_started = self._resend_service_call_if_timeout(
-                    response_future, event, attempt_started, timeout_sec, request, context
+                response_future, event, attempt_started, retry_count = self._resend_service_call_if_timeout(
+                    response_future, event, attempt_started, timeout_sec, request, context, retry_count
                 )
 
             # Get response
