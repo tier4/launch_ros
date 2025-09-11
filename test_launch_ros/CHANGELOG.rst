@@ -2,6 +2,12 @@
 Changelog for package test_launch_ros
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.19.11 (2025-09-11)
+--------------------
+* fix setuptools deprecations (`#475 <https://github.com/ros2/launch_ros/issues/475>`_) (`#486 <https://github.com/ros2/launch_ros/issues/486>`_)
+* Add LifecyleTransition action (`#317 <https://github.com/ros2/launch_ros/issues/317>`_) (`#477 <https://github.com/ros2/launch_ros/issues/477>`_)
+* Contributors: mergify[bot]
+
 0.19.10 (2025-06-23)
 --------------------
 * Fix: LoadComposableNodes fails to parse wildcard param files correctly (`#460 <https://github.com/ros2/launch_ros/issues/460>`_) (`#465 <https://github.com/ros2/launch_ros/issues/465>`_) (`#468 <https://github.com/ros2/launch_ros/issues/468>`_)
