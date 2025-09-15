@@ -2,6 +2,12 @@
 Changelog for package launch_ros
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Fix SetUseSimTime for launch frontends (`#488 <https://github.com/ros2/launch_ros/issues/488>`_) (`#490 <https://github.com/ros2/launch_ros/issues/490>`_)
+* fix setuptools deprecations (`#475 <https://github.com/ros2/launch_ros/issues/475>`_) (`#485 <https://github.com/ros2/launch_ros/issues/485>`_)
+* Contributors: mergify[bot]
+
 0.26.8 (2025-06-23)
 -------------------
 * improve type readability in errors (`#469 <https://github.com/ros2/launch_ros/issues/469>`_) (`#472 <https://github.com/ros2/launch_ros/issues/472>`_)
