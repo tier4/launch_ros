@@ -2,8 +2,8 @@
 Changelog for package launch_ros
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.19.12 (2025-09-15)
+--------------------
 * Fix SetUseSimTime for launch frontends (`#488 <https://github.com/ros2/launch_ros/issues/488>`_) (`#491 <https://github.com/ros2/launch_ros/issues/491>`_)
 * Contributors: mergify[bot]
 
