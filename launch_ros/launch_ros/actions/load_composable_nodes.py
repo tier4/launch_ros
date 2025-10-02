@@ -205,7 +205,7 @@ class LoadComposableNodes(Action):
             response_future.add_done_callback(unblock)
             attempt_started = time.monotonic()
             # maximum wait time per attempt (seconds)
-            timeout_sec = 30.0
+            timeout_sec = 60.0
             retry_count = 0
 
             while not event.wait(1.0):
