@@ -2,6 +2,11 @@
 Changelog for package test_launch_ros
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.26.10 (2025-11-07)
+--------------------
+* Make FindPackage substitutions a Path to get operator / (`#494 <https://github.com/ros2/launch_ros/issues/494>`_) (`#497 <https://github.com/ros2/launch_ros/issues/497>`_)
+* Contributors: mergify[bot]
+
 0.26.9 (2025-09-15)
 -------------------
 * Fix SetUseSimTime for launch frontends (`#488 <https://github.com/ros2/launch_ros/issues/488>`_) (`#490 <https://github.com/ros2/launch_ros/issues/490>`_)
