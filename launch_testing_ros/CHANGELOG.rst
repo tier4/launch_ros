@@ -2,6 +2,11 @@
 Changelog for package launch_testing_ros
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.26.11 (2026-01-12)
+--------------------
+* `WaitForTopics`: let the user inject a callaback to be executed after starting the subscribers (backport `#356 <https://github.com/ros2/launch_ros/issues/356>`_) (`#504 <https://github.com/ros2/launch_ros/issues/504>`_)
+* Contributors: mergify[bot]
+
 0.26.10 (2025-11-07)
 --------------------
 
