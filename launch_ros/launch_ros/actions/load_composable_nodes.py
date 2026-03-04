@@ -279,6 +279,54 @@ class LoadComposableNodes(Action):
         context: LaunchContext
     ) -> Optional[List[Action]]:
         """Execute the action."""
+        # Dry run mode: log what would be loaded and return without actually loading
+        if context.dry_run:
+            self.__logger.info("[DRY RUN] Would load composable nodes into container")
+            for node_description in self.__composable_node_descriptions:
+                # Use get_composable_node_load_request to get full parameter details
+                try:
+                    request = get_composable_node_load_request(node_description, context)
+                except Exception as e:
+                    self.__logger.error(f"[DRY RUN] Error getting load request: {e}")
+                    continue
+
+                pkg = request.package_name
+                plugin = request.plugin_name
+                node_name = request.node_name
+                node_namespace = request.node_namespace or ''
+
+                self.__logger.info(
+                    f"[DRY RUN]   - Node: package='{pkg}', "
+                    f"plugin='{plugin}', name='{node_name}', namespace='{node_namespace}'"
+                )
+
+                # Log remappings
+                if request.remap_rules:
+                    self.__logger.info(f"[DRY RUN]       Remappings: {', '.join(request.remap_rules)}")
+
+                # Log and check parameter files using the helper function
+                param_file_paths = get_composable_node_param_file_paths(node_description, context)
+                if param_file_paths:
+                    for param_file_path in param_file_paths:
+                        if param_file_path.startswith('/tmp/'):
+                            self.__logger.info(f"[DRY RUN]       Param file (tmp): {param_file_path}")
+                        else:
+                            # Check integrity
+                            import os
+                            if os.path.exists(param_file_path):
+                                self.__logger.info(f"[DRY RUN]       Param file OK: {param_file_path}")
+                            else:
+                                self.__logger.error(f"[DRY RUN]       Param file NOT FOUND: {param_file_path}")
+                elif request.parameters:
+                    # Only inline params, no files
+                    self.__logger.info(f"[DRY RUN]       Inline params: {len(request.parameters)} parameter(s)")
+
+                # Log extra arguments
+                if request.extra_arguments:
+                    self.__logger.info(f"[DRY RUN]       Extra arguments: {len(request.extra_arguments)} argument(s)")
+
+            return None
+        
         # resolve target container node name
 
         if is_a_subclass(self.__target_container, ComposableNodeContainer):
@@ -311,6 +359,37 @@ class LoadComposableNodes(Action):
                 None, self._load_in_sequence, load_node_requests, context
             )
         )
+
+
+def get_composable_node_param_file_paths(
+    composable_node_description: ComposableNode,
+    context: LaunchContext
+):
+    """Get parameter file paths from a composable node description (for dry-run logging)."""
+    param_file_paths = []
+
+    params_container = context.launch_configurations.get('global_params', None)
+    if params_container is not None:
+        for param in params_container:
+            if not isinstance(param, tuple):
+                # It's a parameter file path
+                param_file_path = Path(param).resolve()
+                param_file_paths.append(str(param_file_path))
+
+    # Extract file paths from node parameters
+    if composable_node_description.parameters is not None:
+        for param in composable_node_description.parameters:
+            if isinstance(param, ParameterFile):
+                # Get the param_file property (may be a Path or require evaluation)
+                try:
+                    param_path = param.param_file
+                    if hasattr(param_path, 'resolve'):
+                        param_path = param_path.resolve()
+                    param_file_paths.append(str(param_path))
+                except Exception:
+                    pass  # Skip if we can't get the path
+
+    return param_file_paths
 
 
 def get_composable_node_load_request(

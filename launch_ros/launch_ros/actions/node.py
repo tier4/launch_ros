@@ -488,6 +488,23 @@ class Node(ExecuteProcess):
         Delegated to :meth:`launch.actions.ExecuteProcess.execute`.
         """
         self._perform_substitutions(context)
+        
+        # Dry run mode: log what would be executed and return without spawning
+        if context.dry_run:
+            node_logger = launch.logging.get_logger('Node')
+            # Resolve substitutions for logging - need to normalize to list of substitutions first
+            package_name = perform_substitutions(
+                context, normalize_to_list_of_substitutions(self.__package)) if self.__package else 'None'
+            executable_name = perform_substitutions(
+                context, normalize_to_list_of_substitutions(self.__node_executable)) if self.__node_executable else 'None'
+            node_name = self.__final_node_name if self.__final_node_name else self.__node_name
+            node_namespace = self.__expanded_node_namespace
+            node_logger.info(
+                f"[DRY RUN] Would launch ROS node: package='{package_name}', "
+                f"executable='{executable_name}', name='{node_name}', "
+                f"namespace='{node_namespace}'"
+            )
+        
         # Prepare the ros_specific_arguments list and add it to the context so that the
         # LocalSubstitution placeholders added to the the cmd can be expanded using the contents.
         ros_specific_arguments: Dict[str, Union[str, List[str]]] = {}

@@ -145,9 +145,14 @@ def launch_a_launch_file(
     noninteractive=False,
     args=None,
     option_extensions={},
-    debug=False
+    debug=False,
+    dry_run=False
 ):
-    """Launch a given launch file (by path) and pass it the given launch file arguments."""
+    """Launch a given launch file (by path) and pass it the given launch file arguments.
+
+    :param: dry_run if True, the launch system will process events but skip actual
+        process spawning, logging what actions would be executed instead
+    """
     for name in sorted(option_extensions.keys()):
         option_extensions[name].prestart(args)
 
@@ -162,7 +167,8 @@ def launch_a_launch_file(
     launch_service = launch.LaunchService(
         argv=launch_file_arguments,
         noninteractive=noninteractive,
-        debug=debug)
+        debug=debug,
+        dry_run=dry_run)
 
     parsed_launch_arguments = parse_launch_arguments(launch_file_arguments)
     # Include the user provided launch file using IncludeLaunchDescription so that the
