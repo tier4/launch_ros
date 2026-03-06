@@ -134,20 +134,32 @@ class LoadComposableNodes(Action):
         :return: tuple of (new_response_future, new_event, new_attempt_started, new_retry_count)
         """
         if (time.monotonic() - attempt_started) >= timeout_sec:
+            node_ident = request.node_name if request.node_name else '<unnamed>'
             if retry_count >= max_retries:
                 self.__logger.error(
-                    "Maximum retry attempts ({}) exceeded for '{}' service. Giving up.".format(
-                        max_retries, self.__rclpy_load_node_client.srv_name
+                    "Maximum retry attempts ({}) exceeded when loading node '{}' "
+                    "(package='{}', plugin='{}') in container '{}'. Giving up.".format(
+                        max_retries, node_ident, request.package_name, request.plugin_name,
+                        self.__final_target_container_name
                     )
                 )
                 raise RuntimeError(
-                    "Failed to load node after {} retry attempts".format(max_retries)
+                    "Failed to load composable node '{}' (package='{}', plugin='{}') "
+                    "in container '{}' after {} retry attempts".format(
+                        node_ident, request.package_name, request.plugin_name,
+                        self.__final_target_container_name, max_retries
+                    )
                 )
             
+            service_ready = self.__rclpy_load_node_client.service_is_ready()
             self.__logger.warning(
-                "No response from '{}' for {}s; resending service call (attempt {}/{}).".format(
-                    self.__rclpy_load_node_client.srv_name, timeout_sec, 
-                    retry_count + 1, max_retries
+                "No response from '{}' for {}s when loading node '{}' "
+                "(package='{}', plugin='{}') in container '{}'; "
+                "resending service call (attempt {}/{}, service available: {}).".format(
+                    self.__rclpy_load_node_client.srv_name, timeout_sec,
+                    node_ident, request.package_name, request.plugin_name,
+                    self.__final_target_container_name,
+                    retry_count + 1, max_retries, service_ready
                 )
             )
             response_future.cancel()
