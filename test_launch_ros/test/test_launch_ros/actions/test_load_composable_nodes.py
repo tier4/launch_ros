@@ -16,12 +16,15 @@
 
 import pathlib
 import threading
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 from composition_interfaces.srv import LoadNode
 
 from launch import LaunchDescription
 from launch import LaunchService
 from launch.actions import GroupAction
+from launch.launch_context import LaunchContext
 from launch_ros.actions import LoadComposableNodes
 from launch_ros.actions import PushRosNamespace
 from launch_ros.actions import SetRemap
@@ -561,3 +564,153 @@ def test_load_node_with_namespace_in_group(mock_component_container):
     assert len(request.remap_rules) == 0
     assert len(request.parameters) == 0
     assert len(request.extra_arguments) == 0
+
+
+def test_load_node_timeout_max_retries_error_message():
+    """Test that RuntimeError on max retries includes node identity for debugging."""
+    action = LoadComposableNodes(
+        target_container=f'/{TEST_CONTAINER_NAME}',
+        composable_node_descriptions=[
+            ComposableNode(
+                package='pointcloud_preprocessor',
+                plugin='pointcloud_preprocessor::RingOutlierFilterComponent',
+                name='ring_outlier_filter',
+                namespace='sensing',
+            )
+        ]
+    )
+
+    # Set private attributes required by _resend_service_call_if_timeout
+    mock_client = MagicMock()
+    mock_client.srv_name = 'pointcloud_container/_container/load_node'
+    mock_client.service_is_ready.return_value = True
+    action._LoadComposableNodes__rclpy_load_node_client = mock_client
+    action._LoadComposableNodes__final_target_container_name = 'pointcloud_container'
+
+    request = LoadNode.Request()
+    request.package_name = 'pointcloud_preprocessor'
+    request.plugin_name = 'pointcloud_preprocessor::RingOutlierFilterComponent'
+    request.node_name = 'ring_outlier_filter'
+    request.node_namespace = '/sensing'
+
+    mock_future = MagicMock()
+    mock_event = threading.Event()
+    context = LaunchContext()
+
+    with patch('time.monotonic', return_value=100.0):
+        with pytest.raises(RuntimeError) as exc_info:
+            action._resend_service_call_if_timeout(
+                response_future=mock_future,
+                event=mock_event,
+                attempt_started=0.0,
+                timeout_sec=30.0,
+                request=request,
+                context=context,
+                retry_count=10,
+                max_retries=10,
+            )
+
+    err_msg = str(exc_info.value)
+    assert 'ring_outlier_filter' in err_msg
+    assert 'pointcloud_preprocessor' in err_msg
+    assert 'RingOutlierFilterComponent' in err_msg
+    assert 'pointcloud_container' in err_msg
+    assert '10 retry attempts' in err_msg
+
+
+def test_load_node_timeout_max_retries_error_message_unnamed_node():
+    """Test RuntimeError message when node_name is empty (unnamed node)."""
+    action = LoadComposableNodes(
+        target_container=f'/{TEST_CONTAINER_NAME}',
+        composable_node_descriptions=[
+            ComposableNode(
+                package='my_pkg',
+                plugin='my_plugin::MyComponent',
+            )
+        ]
+    )
+
+    mock_client = MagicMock()
+    mock_client.srv_name = 'container/_container/load_node'
+    mock_client.service_is_ready.return_value = False
+    action._LoadComposableNodes__rclpy_load_node_client = mock_client
+    action._LoadComposableNodes__final_target_container_name = 'container'
+
+    request = LoadNode.Request()
+    request.package_name = 'my_pkg'
+    request.plugin_name = 'my_plugin::MyComponent'
+    request.node_name = ''
+    request.node_namespace = '/'
+
+    with patch('time.monotonic', return_value=100.0):
+        with pytest.raises(RuntimeError) as exc_info:
+            action._resend_service_call_if_timeout(
+                response_future=MagicMock(),
+                event=threading.Event(),
+                attempt_started=0.0,
+                timeout_sec=30.0,
+                request=request,
+                context=LaunchContext(),
+                retry_count=10,
+                max_retries=10,
+            )
+
+    err_msg = str(exc_info.value)
+    assert '<unnamed>' in err_msg
+    assert 'my_pkg' in err_msg
+    assert 'MyComponent' in err_msg
+    assert 'container' in err_msg
+
+
+def test_load_node_timeout_retry_warning_message():
+    """Test that retry path calls service_is_ready and resends the request."""
+    action = LoadComposableNodes(
+        target_container=f'/{TEST_CONTAINER_NAME}',
+        composable_node_descriptions=[
+            ComposableNode(
+                package='foo_package',
+                plugin='bar_plugin',
+                name='test_node_name',
+            )
+        ]
+    )
+
+    mock_client = MagicMock()
+    mock_client.srv_name = 'mock_component_container/_container/load_node'
+    mock_client.service_is_ready.return_value = False
+    mock_future = MagicMock()
+    mock_client.call_async.return_value = mock_future
+    action._LoadComposableNodes__rclpy_load_node_client = mock_client
+    action._LoadComposableNodes__final_target_container_name = 'mock_component_container'
+
+    request = LoadNode.Request()
+    request.package_name = 'foo_package'
+    request.plugin_name = 'bar_plugin'
+    request.node_name = 'test_node_name'
+    request.node_namespace = '/'
+
+    mock_response_future = MagicMock()
+
+    with patch('time.monotonic', return_value=100.0):
+        result = action._resend_service_call_if_timeout(
+            response_future=mock_response_future,
+            event=threading.Event(),
+            attempt_started=0.0,
+            timeout_sec=30.0,
+            request=request,
+            context=LaunchContext(),
+            retry_count=0,
+            max_retries=10,
+        )
+
+    # Should have retried (returned new future, event, etc.)
+    assert result[3] == 1  # new retry_count
+
+    # Verify service_is_ready was called for diagnostic logging
+    mock_client.service_is_ready.assert_called_once()
+
+    # Verify call_async was invoked to resend the request
+    mock_client.call_async.assert_called_once_with(request)
+
+    # Verify original future was cancelled
+    mock_response_future.cancel.assert_called_once()
