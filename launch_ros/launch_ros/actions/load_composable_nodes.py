@@ -58,6 +58,8 @@ from ..utilities.normalize_parameters import normalize_parameter_dict
 class LoadComposableNodes(Action):
     """Action that loads composable ROS nodes into a running container."""
 
+    lock = threading.Lock()
+
     def __init__(
         self,
         *,
@@ -119,70 +121,71 @@ class LoadComposableNodes(Action):
         :param request: service request to load a node
         :param context: current launch context
         """
-        while not self.__rclpy_load_node_client.wait_for_service(timeout_sec=1.0):
-            if context.is_shutdown:
-                self.__logger.warning(
-                    "Abandoning wait for the '{}' service, due to shutdown.".format(
-                        self.__rclpy_load_node_client.srv_name
+        with LoadComposableNodes.lock:
+            while not self.__rclpy_load_node_client.wait_for_service(timeout_sec=1.0):
+                if context.is_shutdown:
+                    self.__logger.warning(
+                        "Abandoning wait for the '{}' service, due to shutdown.".format(
+                            self.__rclpy_load_node_client.srv_name
+                        )
                     )
-                )
-                return
+                    return
 
-        # Asynchronously wait on service call so that we can periodically check for shutdown
-        event = threading.Event()
+            # Asynchronously wait on service call so that we can periodically check for shutdown
+            event = threading.Event()
 
-        def unblock(future):
-            nonlocal event
-            event.set()
+            def unblock(future):
+                nonlocal event
+                event.set()
 
-        self.__logger.debug(
-            "Calling the '{}' service with request '{}'".format(
-                self.__rclpy_load_node_client.srv_name, request
-            )
-        )
-
-        response_future = self.__rclpy_load_node_client.call_async(request)
-        response_future.add_done_callback(unblock)
-
-        while not event.wait(1.0):
-            if context.is_shutdown:
-                self.__logger.warning(
-                    "Abandoning wait for the '{}' service response, due to shutdown.".format(
-                        self.__rclpy_load_node_client.srv_name),
-                )
-                response_future.cancel()
-                return
-
-        # Get response
-        if response_future.exception() is not None:
-            raise response_future.exception()
-        response = response_future.result()
-
-        self.__logger.debug("Received response '{}'".format(response))
-
-        node_name = response.full_node_name if response.full_node_name else request.node_name
-        if response.success:
-            if node_name is not None:
-                add_node_name(context, node_name)
-                node_name_count = get_node_name_count(context, node_name)
-                if node_name_count > 1:
-                    container_logger = launch.logging.get_logger(
-                        self.__final_target_container_name
-                    )
-                    container_logger.warning(
-                        'there are now at least {} nodes with the name {} created within this '
-                        'launch context'.format(node_name_count, node_name)
-                    )
-            self.__logger.info("Loaded node '{}' in container '{}'".format(
-                response.full_node_name, self.__final_target_container_name
-            ))
-        else:
-            self.__logger.error(
-                "Failed to load node '{}' of type '{}' in container '{}': {}".format(
-                    node_name, request.plugin_name, self.__final_target_container_name,
-                    response.error_message
+            self.__logger.debug(
+                "Calling the '{}' service with request '{}'".format(
+                    self.__rclpy_load_node_client.srv_name, request
                 )
             )
+
+            response_future = self.__rclpy_load_node_client.call_async(request)
+            response_future.add_done_callback(unblock)
+
+            while not event.wait(1.0):
+                if context.is_shutdown:
+                    self.__logger.warning(
+                        "Abandoning wait for the '{}' service response, due to shutdown.".format(
+                            self.__rclpy_load_node_client.srv_name),
+                    )
+                    response_future.cancel()
+                    return
+
+            # Get response
+            if response_future.exception() is not None:
+                raise response_future.exception()
+            response = response_future.result()
+
+            self.__logger.debug("Received response '{}'".format(response))
+
+            node_name = response.full_node_name if response.full_node_name else request.node_name
+            if response.success:
+                if node_name is not None:
+                    add_node_name(context, node_name)
+                    node_name_count = get_node_name_count(context, node_name)
+                    if node_name_count > 1:
+                        container_logger = launch.logging.get_logger(
+                            self.__final_target_container_name
+                        )
+                        container_logger.warning(
+                            'there are now at least {} nodes with the name {} created within this '
+                            'launch context'.format(node_name_count, node_name)
+                        )
+                self.__logger.info("Loaded node '{}' in container '{}'".format(
+                    response.full_node_name, self.__final_target_container_name
+                ))
+            else:
+                self.__logger.error(
+                    "Failed to load node '{}' of type '{}' in container '{}': {}".format(
+                        node_name, request.plugin_name, self.__final_target_container_name,
+                        response.error_message
+                    )
+                )
 
     def _load_in_sequence(
         self,
