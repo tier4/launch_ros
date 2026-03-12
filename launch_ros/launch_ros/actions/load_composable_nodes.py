@@ -16,6 +16,7 @@
 
 from pathlib import Path
 import threading
+import time
 
 from typing import List
 from typing import Optional
@@ -108,6 +109,77 @@ class LoadComposableNodes(Action):
 
         return cls, kwargs
 
+    def _resend_service_call_if_timeout(
+        self,
+        response_future,
+        event: threading.Event,
+        attempt_started: float,
+        timeout_sec: float,
+        request: composition_interfaces.srv.LoadNode.Request,
+        context: LaunchContext,
+        retry_count: int = 0,
+        max_retries: int = 10
+    ) -> tuple:
+        """
+        Resend service call if timeout occurred.
+        
+        :param response_future: current response future
+        :param event: threading event for synchronization
+        :param attempt_started: timestamp when attempt started
+        :param timeout_sec: timeout duration in seconds
+        :param request: service request to resend
+        :param context: current launch context
+        :param retry_count: current retry attempt count
+        :param max_retries: maximum number of retry attempts
+        :return: tuple of (new_response_future, new_event, new_attempt_started, new_retry_count)
+        """
+        if (time.monotonic() - attempt_started) >= timeout_sec:
+            node_ident = request.node_name if request.node_name else '<unnamed>'
+            if retry_count >= max_retries:
+                self.__logger.error(
+                    "Maximum retry attempts ({}) exceeded when loading node '{}' "
+                    "(package='{}', plugin='{}') in container '{}'. Giving up.".format(
+                        max_retries, node_ident, request.package_name, request.plugin_name,
+                        self.__final_target_container_name
+                    )
+                )
+                raise RuntimeError(
+                    "Failed to load composable node '{}' (package='{}', plugin='{}') "
+                    "in container '{}' after {} retry attempts".format(
+                        node_ident, request.package_name, request.plugin_name,
+                        self.__final_target_container_name, max_retries
+                    )
+                )
+            
+            service_ready = self.__rclpy_load_node_client.service_is_ready()
+            self.__logger.warning(
+                "No response from '{}' for {}s when loading node '{}' "
+                "(package='{}', plugin='{}') in container '{}'; "
+                "resending service call (attempt {}/{}, service available: {}).".format(
+                    self.__rclpy_load_node_client.srv_name, timeout_sec,
+                    node_ident, request.package_name, request.plugin_name,
+                    self.__final_target_container_name,
+                    retry_count + 1, max_retries, service_ready
+                )
+            )
+            response_future.cancel()
+
+            # Reset event and unblock callback
+            new_event = threading.Event()
+
+            def unblock(future):
+                nonlocal new_event
+                new_event.set()
+
+            new_response_future = self.__rclpy_load_node_client.call_async(request)
+            new_response_future.add_done_callback(unblock)
+            new_attempt_started = time.monotonic()
+            new_retry_count = retry_count + 1
+            
+            return new_response_future, new_event, new_attempt_started, new_retry_count
+        
+        return response_future, event, attempt_started, retry_count
+
     def _load_node(
         self,
         request: composition_interfaces.srv.LoadNode.Request,
@@ -143,6 +215,10 @@ class LoadComposableNodes(Action):
 
         response_future = self.__rclpy_load_node_client.call_async(request)
         response_future.add_done_callback(unblock)
+        attempt_started = time.monotonic()
+        # maximum wait time per attempt (seconds)
+        timeout_sec = 30.0
+        retry_count = 0
 
         while not event.wait(1.0):
             if context.is_shutdown:
@@ -152,6 +228,11 @@ class LoadComposableNodes(Action):
                 )
                 response_future.cancel()
                 return
+
+        # Resend if no response for timeout_sec
+        response_future, event, attempt_started, retry_count = self._resend_service_call_if_timeout(
+            response_future, event, attempt_started, timeout_sec, request, context, retry_count
+        )
 
         # Get response
         if response_future.exception() is not None:
