@@ -203,6 +203,10 @@ class LoadComposableNodes(Action):
 
         response_future = self.__rclpy_load_node_client.call_async(request)
         response_future.add_done_callback(unblock)
+        attempt_started = time.monotonic()
+        # maximum wait time per attempt (seconds)
+        timeout_sec = 30.0
+        retry_count = 0
 
         while not event.wait(1.0):
             if context.is_shutdown:
@@ -212,6 +216,11 @@ class LoadComposableNodes(Action):
                 )
                 response_future.cancel()
                 return
+
+        # Resend if no response for timeout_sec
+        response_future, event, attempt_started, retry_count = self._resend_service_call_if_timeout(
+            response_future, event, attempt_started, timeout_sec, request, context, retry_count
+        )
 
         # Get response
         if response_future.exception() is not None:
@@ -243,58 +252,6 @@ class LoadComposableNodes(Action):
                     response.error_message
                 )
             )
-
-            response_future = self.__rclpy_load_node_client.call_async(request)
-            response_future.add_done_callback(unblock)
-            attempt_started = time.monotonic()
-            # maximum wait time per attempt (seconds)
-            timeout_sec = 30.0
-            retry_count = 0
-
-            while not event.wait(1.0):
-                if context.is_shutdown:
-                    self.__logger.warning(
-                        "Abandoning wait for the '{}' service response, due to shutdown.".format(
-                            self.__rclpy_load_node_client.srv_name),
-                    )
-                    response_future.cancel()
-                    return
-
-                # Resend if no response for timeout_sec
-                response_future, event, attempt_started, retry_count = self._resend_service_call_if_timeout(
-                    response_future, event, attempt_started, timeout_sec, request, context, retry_count
-                )
-
-            # Get response
-            if response_future.exception() is not None:
-                raise response_future.exception()
-            response = response_future.result()
-
-            self.__logger.debug("Received response '{}'".format(response))
-
-            node_name = response.full_node_name if response.full_node_name else request.node_name
-            if response.success:
-                if node_name is not None:
-                    add_node_name(context, node_name)
-                    node_name_count = get_node_name_count(context, node_name)
-                    if node_name_count > 1:
-                        container_logger = launch.logging.get_logger(
-                            self.__final_target_container_name
-                        )
-                        container_logger.warning(
-                            'there are now at least {} nodes with the name {} created within this '
-                            'launch context'.format(node_name_count, node_name)
-                        )
-                self.__logger.info("Loaded node '{}' in container '{}'".format(
-                    response.full_node_name, self.__final_target_container_name
-                ))
-            else:
-                self.__logger.error(
-                    "Failed to load node '{}' of type '{}' in container '{}': {}".format(
-                        node_name, request.plugin_name, self.__final_target_container_name,
-                        response.error_message
-                    )
-                )
 
     def _load_in_sequence(
         self,
